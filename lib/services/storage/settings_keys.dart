@@ -73,7 +73,7 @@ class SettingsKeys {
     false,
     group: SettingGroup.misc,
   );
-  /// 0: original, 1: Traditional -> Simplified, 2: LibreTranslate.
+  /// 0: original, 1: Traditional -> Simplified, 2: LibreTranslate, 3: local LLM.
   static const subtitleProcessingMode = SettingKey<int>(
     'subtitleProcessingMode',
     0,
@@ -86,6 +86,17 @@ class SettingsKeys {
     group: SettingGroup.player,
   );
   /// Stored locally in the existing settings store (not encrypted).
+  /// Local Ollama / OpenAI-compatible chat completions endpoint.
+  static const subtitleLocalAiEndpoint = SettingKey<String>(
+    'subtitleLocalAiEndpoint',
+    'http://127.0.0.1:11434/v1/chat/completions',
+    group: SettingGroup.player,
+  );
+  static const subtitleLocalAiModel = SettingKey<String>(
+    'subtitleLocalAiModel',
+    'qwen2.5:3b',
+    group: SettingGroup.player,
+  );
   static const subtitleTranslateApiKey = SettingKey<String>(
     'subtitleTranslateApiKey',
     '',
@@ -610,6 +621,8 @@ class SettingsKeys {
     subtitleProcessingMode,
     subtitleTranslateEndpoint,
     subtitleTranslateApiKey,
+    subtitleLocalAiEndpoint,
+    subtitleLocalAiModel,
     defaultShortcutForwardPlaySpeed,
     defaultAspectRatioType,
     buttonSkipTime,
