@@ -1,0 +1,123 @@
+name: Publish Kazumi Fork Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag, e.g. v2.4.4-fork.1'
+        required: true
+        type: string
+      prerelease:
+        description: 'Publish as a pre-release (recommended for first APK)'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: kazumi-fork-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Find successful Windows/Android build for current main
+        id: build
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current_sha="$(git rev-parse HEAD)"
+          latest_id="$(gh run list \
+            --workflow fork-build.yml \
+            --branch main \
+            --status success \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId // empty')"
+          if [[ -z "$latest_id" ]]; then
+            echo "::error::No successful main-branch build. Open Actions > Fork Build and wait for a green run."
+            exit 1
+          fi
+          built_sha="$(gh run view "$latest_id" --json headSha --jq '.headSha')"
+          if [[ "$built_sha" != "$current_sha" ]]; then
+            echo "::error::The most recent successful build is for $built_sha, but main is $current_sha."
+            echo "::error::Wait for the new main build to finish, then run Publish Kazumi Fork Release again."
+            exit 1
+          fi
+          echo "run_id=$latest_id" >> "$GITHUB_OUTPUT"
+          echo "sha=$current_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Download tested Windows and Android artifacts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.build.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          gh run download "$RUN_ID" --name kazumi-fork-windows --dir windows-artifact
+          gh run download "$RUN_ID" --name kazumi-fork-android-arm64 --dir android-artifact
+          cp windows-artifact/Kazumi-Fork-Windows.zip release/Kazumi-Fork-Windows.zip
+          cp android-artifact/Kazumi-Fork-Android-arm64.apk release/Kazumi-Fork-Android-arm64.apk
+          test -s release/Kazumi-Fork-Windows.zip
+          test -s release/Kazumi-Fork-Android-arm64.apk
+          sha256sum release/* > release/SHA256SUMS.txt
+
+      - name: Publish GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          PRERELEASE: ${{ inputs.prerelease }}
+          RELEASE_SHA: ${{ steps.build.outputs.sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-fork\.[0-9]+$ ]]; then
+            echo "::error::Tag must resemble v2.4.4-fork.1"
+            exit 1
+          fi
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "::error::Release $RELEASE_TAG already exists. Choose a new version tag."
+            exit 1
+          fi
+          cat > release-notes.md <<'EOF'
+          Customized Kazumi fork based on the GPL-3.0-licensed upstream project.
+
+          - Playback speed: 0.1x to 16x in 0.1x increments
+          - Traditional-to-Simplified Chinese text-subtitle conversion
+          - Optional LibreTranslate and local Ollama/LM Studio translation
+          - Includes complete Windows x64 ZIP and Android ARM64 APK
+
+          Important limitations:
+          - AI subtitles translate each live cue; whole-episode pretranslation is not implemented.
+          - Hardcoded/burned-in video subtitles are not OCR'd.
+          - Android APK signing is stable only when the repository's four Android
+            signing secrets have been configured; otherwise CI uses a debug
+            signing fallback, which must not be relied on for future in-place upgrades.
+          - This is an unofficial fork, not an official Kazumi release.
+          - Source code for this exact release is linked by GitHub below.
+          EOF
+          flags=()
+          if [[ "$PRERELEASE" == "true" ]]; then
+            flags+=(--prerelease)
+          fi
+          gh release create "$RELEASE_TAG" \
+            release/Kazumi-Fork-Windows.zip \
+            release/Kazumi-Fork-Android-arm64.apk \
+            release/SHA256SUMS.txt \
+            --target "$RELEASE_SHA" \
+            --title "Kazumi Fork $RELEASE_TAG" \
+            --notes-file release-notes.md \
+            "${flags[@]}"
