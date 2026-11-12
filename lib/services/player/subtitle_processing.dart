@@ -10,7 +10,6 @@ enum SubtitleProcessingMode {
 
   static SubtitleProcessingMode fromStorage(int value) =>
       value >= 0 && value < values.length ? values[value] : original;
-
 }
 
 class SubtitleProcessingService {
@@ -69,6 +68,7 @@ class SubtitleProcessingService {
     _cache[key] = simplified;
     return simplified;
   }
+
   /// OpenAI-compatible local LLM, including Ollama and LM Studio.
   /// No cloud service is contacted by the app when configured with a
   /// loopback / private-LAN URL. The model server is user-managed.
@@ -110,7 +110,10 @@ class SubtitleProcessingService {
           {'role': 'user', 'content': text},
         ],
       },
-      options: Options(contentType: Headers.jsonContentType),
+      options: Options(
+        contentType: Headers.jsonContentType,
+        receiveTimeout: const Duration(seconds: 45),
+      ),
       cancelToken: cancelToken,
     );
     final choices = response.data?['choices'];
