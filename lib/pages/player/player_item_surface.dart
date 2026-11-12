@@ -25,6 +25,8 @@ class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
     SettingsKeys.subtitleProcessingMode,
     SettingsKeys.subtitleTranslateEndpoint,
     SettingsKeys.subtitleTranslateApiKey,
+    SettingsKeys.subtitleLocalAiEndpoint,
+    SettingsKeys.subtitleLocalAiModel,
   ]);
 
   @override
@@ -96,6 +98,10 @@ class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
                         SettingsKeys.subtitleTranslateEndpoint),
                     apiKey: GStorage.getSetting(
                         SettingsKeys.subtitleTranslateApiKey),
+                    localEndpoint: GStorage.getSetting(
+                        SettingsKeys.subtitleLocalAiEndpoint),
+                    localModel: GStorage.getSetting(
+                        SettingsKeys.subtitleLocalAiModel),
                   ),
                 ),
               ],
