@@ -76,9 +76,7 @@ android {
         release {
             // Use a consistent signing key for APK updates when provided.
             // Debug signing is only a temporary, non-upgradable CI fallback.
-            signingConfig releaseKeystoreFile.exists()
-                ? signingConfigs.forkRelease
-                : signingConfigs.debug
+            signingConfig(releaseKeystoreFile.exists() ? signingConfigs.forkRelease : signingConfigs.debug)
         }
     }
 
