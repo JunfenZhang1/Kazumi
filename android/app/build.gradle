@@ -17,6 +17,14 @@ if (flutterVersionCode == null) {
     flutterVersionCode = '1'
 }
 
+def releaseKeystoreProperties = new Properties()
+def releaseKeystoreFile = rootProject.file('key.properties')
+if (releaseKeystoreFile.exists()) {
+    releaseKeystoreFile.withInputStream { input ->
+        releaseKeystoreProperties.load(input)
+    }
+}
+
 def flutterVersionName = localProperties.getProperty('flutter.versionName')
 if (flutterVersionName == null) {
     flutterVersionName = '1.0'
@@ -44,7 +52,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId "com.predidit.kazumi"
+        applicationId "com.junfenzhang1.kazumifork"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdkVersion flutter.minSdkVersion
@@ -53,11 +61,24 @@ android {
         versionName flutterVersionName
     }
 
+    if (releaseKeystoreFile.exists()) {
+        signingConfigs {
+            forkRelease {
+                keyAlias releaseKeystoreProperties['keyAlias']
+                keyPassword releaseKeystoreProperties['keyPassword']
+                storeFile file(releaseKeystoreProperties['storeFile'])
+                storePassword releaseKeystoreProperties['storePassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig signingConfigs.debug
+            // Use a consistent signing key for APK updates when provided.
+            // Debug signing is only a temporary, non-upgradable CI fallback.
+            signingConfig releaseKeystoreFile.exists()
+                ? signingConfigs.forkRelease
+                : signingConfigs.debug
         }
     }
 
