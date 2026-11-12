@@ -117,9 +117,11 @@ class SubtitleProcessingService {
       cancelToken: cancelToken,
     );
     final choices = response.data?['choices'];
-    final content = choices is List && choices.isNotEmpty
-        ? choices.first['message']?['content']
+    final first = choices is List && choices.isNotEmpty
+        ? choices.first
         : null;
+    final message = first is Map ? first['message'] : null;
+    final content = message is Map ? message['content'] : null;
     if (content is! String || content.trim().isEmpty) {
       throw const FormatException('Local AI did not return subtitle text');
     }
