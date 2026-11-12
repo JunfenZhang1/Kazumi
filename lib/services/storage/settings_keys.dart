@@ -73,6 +73,24 @@ class SettingsKeys {
     false,
     group: SettingGroup.misc,
   );
+  /// 0: original, 1: Traditional -> Simplified, 2: LibreTranslate.
+  static const subtitleProcessingMode = SettingKey<int>(
+    'subtitleProcessingMode',
+    0,
+    group: SettingGroup.player,
+  );
+  /// User-supplied LibreTranslate-compatible POST /translate endpoint.
+  static const subtitleTranslateEndpoint = SettingKey<String>(
+    'subtitleTranslateEndpoint',
+    '',
+    group: SettingGroup.player,
+  );
+  /// Stored locally in the existing settings store (not encrypted).
+  static const subtitleTranslateApiKey = SettingKey<String>(
+    'subtitleTranslateApiKey',
+    '',
+    group: SettingGroup.player,
+  );
   static const defaultPlaySpeed = SettingKey<double>(
     _SettingBoxKey.defaultPlaySpeed,
     1.0,
@@ -589,6 +607,9 @@ class SettingsKeys {
     checkPluginUpdateOnStartup,
     alwaysOntop,
     defaultPlaySpeed,
+    subtitleProcessingMode,
+    subtitleTranslateEndpoint,
+    subtitleTranslateApiKey,
     defaultShortcutForwardPlaySpeed,
     defaultAspectRatioType,
     buttonSkipTime,
