@@ -1027,27 +1027,16 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Future<void> handleSpeedChange(String type) async {
-    try {
-      final currentSpeed = playerController.playback.playerSpeed;
-      int index = defaultPlaySpeedList.indexOf(currentSpeed);
-      if (type == "up") {
-        if (index < defaultPlaySpeedList.length - 1) {
-          index++;
-          setPlaybackSpeed(defaultPlaySpeedList[index]);
-        } else {
-          KazumiDialog.showToast(message: '已达倍速上限');
-        }
-      } else if (type == "down") {
-        if (index > 0) {
-          index--;
-          setPlaybackSpeed(defaultPlaySpeedList[index]);
-        } else {
-          KazumiDialog.showToast(message: '已达倍速下限');
-        }
-      }
-    } catch (e) {
-      KazumiLogger().e('PlayerController: speed change failed', error: e);
+    final current = playerController.playback.playerSpeed;
+    final step = type == 'up' ? 1 : type == 'down' ? -1 : 0;
+    if (step == 0) return;
+    final tenths = (current * 10).round() + step;
+    if (tenths < 1 || tenths > 160) {
+      KazumiDialog.showToast(
+          message: step > 0 ? '已达倍速上限' : '已达倍速下限');
+      return;
     }
+    await setPlaybackSpeed(tenths / 10.0);
   }
 
   Future<void> handleShortcutVolumeChange(String type) async {
