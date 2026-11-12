@@ -624,12 +624,42 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         onSelected: (value) => playerController.panel.aspectRatioMode = value,
       );
 
-  List<Widget> get _speedItems => _choiceItems(
-        defaultPlaySpeedList,
-        label: (value) => '${value}x',
-        selected: (value) => value == playerController.playback.playerSpeed,
-        onSelected: widget.setPlaybackSpeed,
-      );
+  List<Widget> get _speedItems => [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: SizedBox(
+            width: 280,
+            child: Observer(
+              builder: (context) {
+                final speed = playerController.playback.playerSpeed;
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('当前倍速：${speed.toStringAsFixed(1)}x'),
+                    Slider(
+                      min: minPlayerSpeed,
+                      max: maxPlayerSpeed,
+                      divisions: 159,
+                      value: speed.clamp(minPlayerSpeed, maxPlayerSpeed),
+                      label: '${speed.toStringAsFixed(1)}x',
+                      onChanged: (value) =>
+                          widget.setPlaybackSpeed(normalizePlayerSpeed(value)),
+                    ),
+                    const Text('0.1x – 16x，间隔 0.1x'),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+        ..._choiceItems(
+          defaultPlaySpeedList,
+          label: (value) => '${value}x',
+          selected: (value) => value == playerController.playback.playerSpeed,
+          onSelected: widget.setPlaybackSpeed,
+        ),
+      ];
 
   List<Widget> get _superResolutionItems => _choiceItems(
         SuperResolutionMode.values,
