@@ -33,6 +33,56 @@ Important restrictions:
 - API keys are stored in the existing local Hive settings, **not encrypted**.
   Avoid placing important credentials here on a shared machine.
 
+## Local AI translation (Ollama / LM Studio)
+
+**Status:** Implemented as an optional, text-only, OpenAI-compatible
+`/v1/chat/completions` client in this branch. Requires a user-run local
+model server. Translation is performed **per live subtitle cue**; full-episode
+pretranslation and a persisted on-disk subtitle cache are **not implemented**.
+
+1. Install Ollama on your Windows PC: https://ollama.com/download/windows
+2. Download a multilingual model:
+
+   ```powershell
+   ollama pull qwen2.5:3b
+   ollama list
+   ```
+
+   The `qwen2.5:3b` model is around 1.9 GB in Ollama's published model
+   catalog. Smaller `qwen2.5:1.5b` trades translation quality for lower
+   memory use and potentially faster inference.
+3. In Kazumi, open **播放器 → 更多 → 字幕转换 / 翻译**:
+   - Mode: **本地 AI（Ollama / LM Studio）**
+   - Endpoint: `http://127.0.0.1:11434/v1/chat/completions`
+   - Model: `qwen2.5:3b`
+4. The model translates the text-subtitle cues that Kazumi's media-kit player
+   exposes. Original subtitles remain visible during inference or if the
+   request fails. Results are cached **in memory** (max 400 items).
+
+### Access from Android over your LAN (not Android offline inference)
+
+- `127.0.0.1` on Android is the **phone**, not the Windows PC.
+- If desired, configure the Windows Ollama service to bind to your PC's
+  LAN address and allow inbound TCP 11434 from **trusted local devices only**.
+  Ollama's `OLLAMA_HOST` environment variable controls listening.
+- In Kazumi Android set `http://YOUR_PC_LAN_IP:11434/v1/chat/completions`.
+- No remote cloud service is required, but the phone needs LAN connectivity
+  and the PC/model server must be running.
+- HTTP on a local LAN is unencrypted. Never expose Ollama directly to the
+  public Internet without strong access controls and TLS.
+
+**True Android on-device translation** would need a separate integration
+(such as Google ML Kit's mobile translation engine or an embedded
+llama.cpp runtime). That is **not part of this PR**.
+
+### Performance notes
+
+High-rate playback at 8x–16x gives a language model very little time to
+translate each cue. For reliable high-rate *translated* subtitles, the next
+feature should be **pretranslate the entire SRT/VTT subtitle track and cache
+its timestamps/translations before playback**. The current local AI feature
+does not claim to solve that problem.
+
 ## Build
 
 The `Fork Build (Windows + Android)` workflow runs on feature branches,
