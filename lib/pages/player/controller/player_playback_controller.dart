@@ -328,7 +328,7 @@ abstract class _PlayerPlaybackController with Store {
       if (!isCurrentPlayer(player)) {
         return await _discardIfNotCurrent(candidate);
       }
-      await pp.setProperty("af", "scaletempo2=max-speed=8");
+      await pp.setProperty("af", "scaletempo2=max-speed=16");
       if (!isCurrentPlayer(player)) {
         return await _discardIfNotCurrent(candidate);
       }
@@ -525,9 +525,17 @@ abstract class _PlayerPlaybackController with Store {
   }
 
   Future<void> setPlaybackSpeed(double playerSpeed) async {
-    this.playerSpeed = playerSpeed;
+    final speed = normalizePlayerSpeed(playerSpeed);
+    final player = mediaPlayer;
+    if (player == null) {
+      this.playerSpeed = speed;
+      return;
+    }
     try {
-      mediaPlayer!.setRate(playerSpeed);
+      await player.setRate(speed);
+      if (isCurrentPlayer(player)) {
+        this.playerSpeed = speed;
+      }
     } catch (e) {
       KazumiLogger()
           .e('PlayerController: failed to set playback speed', error: e);
