@@ -1,0 +1,62 @@
+name: Propose upstream updates
+
+on:
+  schedule:
+    - cron: '35 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  propose-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Fetch official main
+        shell: bash
+        run: |
+          git remote add upstream https://github.com/Predidit/Kazumi.git
+          git fetch upstream main
+          git fetch origin main
+      - name: Merge upstream into an isolated branch and create PR
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if git merge-base --is-ancestor upstream/main origin/main; then
+            echo "Fork main already includes the upstream head."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin bot/upstream-sync:refs/remotes/origin/bot/upstream-sync || true
+          git checkout -B bot/upstream-sync origin/main
+          if ! git merge --no-ff --no-edit upstream/main; then
+            echo "::error::Upstream merge conflict. Resolve against upstream/main manually; fork main was not changed."
+            exit 1
+          fi
+          if git diff --quiet origin/main HEAD; then
+            echo "No new changes."
+            exit 0
+          fi
+          git push --force-with-lease origin HEAD:refs/heads/bot/upstream-sync
+          if gh pr view bot/upstream-sync --json number >/dev/null 2>&1; then
+            echo "Existing sync pull request updated."
+          else
+            gh pr create \
+              --base main \
+              --head bot/upstream-sync \
+              --title "chore: merge official Kazumi upstream" \
+              --body "Automatic weekly upstream merge proposal. **Review and merge manually** after Windows/Android validation. Never blindly overwrite fork-specific player and subtitle modifications."
+          fi
