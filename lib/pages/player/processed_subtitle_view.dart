@@ -14,12 +14,16 @@ class ProcessedSubtitleView extends StatefulWidget {
     required this.mode,
     required this.endpoint,
     required this.apiKey,
+    required this.localEndpoint,
+    required this.localModel,
   });
 
   final Player player;
   final SubtitleProcessingMode mode;
   final String endpoint;
   final String apiKey;
+  final String localEndpoint;
+  final String localModel;
 
   @override
   State<ProcessedSubtitleView> createState() => _ProcessedSubtitleViewState();
@@ -67,10 +71,12 @@ class _ProcessedSubtitleViewState extends State<ProcessedSubtitleView> {
     // Show the original while translating; stale responses never overwrite
     // a later cue.
     setState(() => _display = input);
-    if (widget.mode != SubtitleProcessingMode.translate ||
-        widget.endpoint.trim().isEmpty) {
-      return;
-    }
+    final canTranslate = widget.mode == SubtitleProcessingMode.translate &&
+        widget.endpoint.trim().isNotEmpty;
+    final canUseLocalAi = widget.mode == SubtitleProcessingMode.localAi &&
+        widget.localEndpoint.trim().isNotEmpty &&
+        widget.localModel.trim().isNotEmpty;
+    if (!canTranslate && !canUseLocalAi) return;
 
     final cancel = CancelToken();
     _requestCancel = cancel;
@@ -80,12 +86,19 @@ class _ProcessedSubtitleViewState extends State<ProcessedSubtitleView> {
   Future<void> _translate(
       String input, int generation, CancelToken cancel) async {
     try {
-      final translated = await SubtitleProcessingService.translateToSimplified(
-        text: input,
-        endpoint: widget.endpoint,
-        apiKey: widget.apiKey,
-        cancelToken: cancel,
-      );
+      final translated = widget.mode == SubtitleProcessingMode.localAi
+          ? await SubtitleProcessingService.translateWithLocalAi(
+              text: input,
+              endpoint: widget.localEndpoint,
+              model: widget.localModel,
+              cancelToken: cancel,
+            )
+          : await SubtitleProcessingService.translateToSimplified(
+              text: input,
+              endpoint: widget.endpoint,
+              apiKey: widget.apiKey,
+              cancelToken: cancel,
+            );
       if (mounted && generation == _generation && !cancel.isCancelled) {
         setState(() => _display = translated);
       }
@@ -100,7 +113,9 @@ class _ProcessedSubtitleViewState extends State<ProcessedSubtitleView> {
     if (!identical(oldWidget.player, widget.player) ||
         oldWidget.mode != widget.mode ||
         oldWidget.endpoint != widget.endpoint ||
-        oldWidget.apiKey != widget.apiKey) {
+        oldWidget.apiKey != widget.apiKey ||
+        oldWidget.localEndpoint != widget.localEndpoint ||
+        oldWidget.localModel != widget.localModel) {
       _requestCancel?.cancel('Subtitle settings changed');
       _requestCancel = null;
       _generation++;
