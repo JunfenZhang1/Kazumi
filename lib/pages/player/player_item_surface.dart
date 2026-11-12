@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
+import 'package:kazumi/pages/player/processed_subtitle_view.dart';
+import 'package:kazumi/services/player/subtitle_processing.dart';
+import 'package:kazumi/services/storage/storage.dart';
 
 class PlayerItemSurface extends StatefulWidget {
   const PlayerItemSurface({
@@ -16,10 +21,18 @@ class PlayerItemSurface extends StatefulWidget {
 }
 
 class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
+  late final Stream<void> _subtitleSettings = GStorage.watchSettings([
+    SettingsKeys.subtitleProcessingMode,
+    SettingsKeys.subtitleTranslateEndpoint,
+    SettingsKeys.subtitleTranslateApiKey,
+  ]);
+
   @override
   Widget build(BuildContext context) {
     final playerController = widget.playerController;
-    return Observer(builder: (context) {
+    return StreamBuilder<void>(
+      stream: _subtitleSettings,
+      builder: (context, _) => Observer(builder: (context) {
       if (playerController.playback.loading ||
           playerController.playback.videoController == null) {
         return Container(
@@ -31,12 +44,16 @@ class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
       }
 
       final aspectRatioMode = playerController.panel.aspectRatioMode;
+      final mode = SubtitleProcessingMode.fromStorage(
+        GStorage.getSetting(SettingsKeys.subtitleProcessingMode),
+      );
       final video = Video(
         controller: playerController.playback.videoController!,
         controls: NoVideoControls,
         pauseUponEnteringBackgroundMode: false,
         fit: aspectRatioMode.fit,
         subtitleViewConfiguration: SubtitleViewConfiguration(
+          visible: mode == SubtitleProcessingMode.original,
           style: TextStyle(
             color: Colors.pink,
             fontSize: 48.0,
@@ -61,14 +78,38 @@ class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
         ),
       );
 
+      final player = playerController.playback.mediaPlayer;
+      final surface = mode == SubtitleProcessingMode.original || player == null
+          ? video
+          : Stack(
+              fit: StackFit.expand,
+              children: [
+                video,
+                Positioned(
+                  left: 24,
+                  right: 24,
+                  bottom: 24,
+                  child: ProcessedSubtitleView(
+                    player: player,
+                    mode: mode,
+                    endpoint: GStorage.getSetting(
+                        SettingsKeys.subtitleTranslateEndpoint),
+                    apiKey: GStorage.getSetting(
+                        SettingsKeys.subtitleTranslateApiKey),
+                  ),
+                ),
+              ],
+            );
+
       final frameAspectRatio = aspectRatioMode.frameAspectRatio;
       if (frameAspectRatio == null) {
-        return video;
+        return surface;
       }
       return AspectRatio(
         aspectRatio: frameAspectRatio,
-        child: video,
+        child: surface,
       );
-    });
+    }),
+    );
   }
 }
