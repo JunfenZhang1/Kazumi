@@ -1,0 +1,103 @@
+name: Fork Build (Windows + Android)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+          cache: true
+      - run: flutter pub get
+      - name: Run analysis
+        run: flutter analyze --no-fatal-infos
+      - name: Run tests
+        run: flutter test
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+          cache: true
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build g++
+      - run: flutter pub get
+      - name: Configure optional stable signing
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [[ -n "$KEYSTORE_BASE64" && -n "$STORE_PASSWORD" && -n "$KEY_PASSWORD" && -n "$KEY_ALIAS" ]]; then
+            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+            {
+              printf 'storePassword=%s\n' "$STORE_PASSWORD"
+              printf 'keyPassword=%s\n' "$KEY_PASSWORD"
+              printf 'keyAlias=%s\n' "$KEY_ALIAS"
+              printf 'storeFile=%s\n' 'upload-keystore.jks'
+            } > android/key.properties
+          else
+            echo "::warning::No stable signing secrets configured; APK uses debug signing and is not guaranteed to upgrade across CI runs."
+          fi
+      - name: Build arm64 APK
+        run: flutter build apk --release --split-per-abi
+      - name: Copy Android artifact
+        run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk Kazumi-Fork-Android-arm64.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kazumi-fork-android-arm64
+          path: Kazumi-Fork-Android-arm64.apk
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable long paths
+        run: git config --system core.longpaths true
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+          cache: true
+      - run: flutter config --enable-windows-desktop
+      - run: flutter pub get
+      - name: Build Windows
+        run: flutter build windows --release
+      - name: Package Windows executable and DLLs
+        shell: pwsh
+        run: Compress-Archive -Path 'build/windows/x64/runner/Release/*' -DestinationPath 'Kazumi-Fork-Windows.zip'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kazumi-fork-windows
+          path: Kazumi-Fork-Windows.zip
+          if-no-files-found: error
