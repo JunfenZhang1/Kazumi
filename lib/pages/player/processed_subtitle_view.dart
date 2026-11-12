@@ -104,7 +104,8 @@ class _ProcessedSubtitleViewState extends State<ProcessedSubtitleView> {
       _requestCancel?.cancel('Subtitle settings changed');
       _requestCancel = null;
       _generation++;
-      unawaited(_subscription?.cancel());
+      final subscription = _subscription;
+      if (subscription != null) unawaited(subscription.cancel());
       _subscription = null;
       _input = '';
       _display = '';
@@ -116,7 +117,8 @@ class _ProcessedSubtitleViewState extends State<ProcessedSubtitleView> {
   void dispose() {
     _generation++;
     _requestCancel?.cancel('Subtitle widget disposed');
-    unawaited(_subscription?.cancel());
+    final subscription = _subscription;
+      if (subscription != null) unawaited(subscription.cancel());
     super.dispose();
   }
 
