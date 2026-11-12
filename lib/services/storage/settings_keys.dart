@@ -60,7 +60,7 @@ class SettingsKeys {
   );
   static const autoUpdate = SettingKey<bool>(
     _SettingBoxKey.autoUpdate,
-    true,
+    false, // Fork releases are opt-in; do not install official binaries.
     group: SettingGroup.update,
   );
   static const checkPluginUpdateOnStartup = SettingKey<bool>(
@@ -72,6 +72,35 @@ class SettingsKeys {
     _SettingBoxKey.alwaysOntop,
     false,
     group: SettingGroup.misc,
+  );
+  /// 0: original, 1: Traditional -> Simplified, 2: LibreTranslate, 3: local LLM.
+  static const subtitleProcessingMode = SettingKey<int>(
+    'subtitleProcessingMode',
+    0,
+    group: SettingGroup.player,
+  );
+  /// User-supplied LibreTranslate-compatible POST /translate endpoint.
+  static const subtitleTranslateEndpoint = SettingKey<String>(
+    'subtitleTranslateEndpoint',
+    '',
+    group: SettingGroup.player,
+  );
+  /// Stored locally in the existing settings store (not encrypted).
+  /// Local Ollama / OpenAI-compatible chat completions endpoint.
+  static const subtitleLocalAiEndpoint = SettingKey<String>(
+    'subtitleLocalAiEndpoint',
+    'http://127.0.0.1:11434/v1/chat/completions',
+    group: SettingGroup.player,
+  );
+  static const subtitleLocalAiModel = SettingKey<String>(
+    'subtitleLocalAiModel',
+    'qwen2.5:3b',
+    group: SettingGroup.player,
+  );
+  static const subtitleTranslateApiKey = SettingKey<String>(
+    'subtitleTranslateApiKey',
+    '',
+    group: SettingGroup.player,
   );
   static const defaultPlaySpeed = SettingKey<double>(
     _SettingBoxKey.defaultPlaySpeed,
@@ -589,6 +618,11 @@ class SettingsKeys {
     checkPluginUpdateOnStartup,
     alwaysOntop,
     defaultPlaySpeed,
+    subtitleProcessingMode,
+    subtitleTranslateEndpoint,
+    subtitleTranslateApiKey,
+    subtitleLocalAiEndpoint,
+    subtitleLocalAiModel,
     defaultShortcutForwardPlaySpeed,
     defaultAspectRatioType,
     buttonSkipTime,

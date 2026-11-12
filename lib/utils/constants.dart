@@ -150,21 +150,19 @@ const List<String> mpvAnime4KShadersLite = [
   'Anime4K_Upscale_CNN_x2_S.glsl'
 ];
 
-/// 可选播放倍速
+/// 可选倍速预设。0.1x 步进由播放菜单滑块和快捷键提供。
+const double minPlayerSpeed = 0.1;
+const double maxPlayerSpeed = 16.0;
+const double playerSpeedStep = 0.1;
+
 const List<double> defaultPlaySpeedList = [
-  0.25,
-  0.5,
-  0.75,
-  1.0,
-  1.25,
-  1.5,
-  1.75,
-  2.0,
-  2.25,
-  2.5,
-  2.75,
-  3.0,
+  0.1, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75,
+  2.0, 2.5, 3.0, 4.0, 6.0, 8.0, 12.0, 16.0,
 ];
+
+/// 速度始终在 0.1–16.0 范围内，并按 0.1x 取整。
+double normalizePlayerSpeed(double speed) =>
+    ((speed * 10).round().clamp(1, 160)) / 10.0;
 
 /// 距视频结尾在此阈值内视为"已看完"：
 /// 保存历史时进度归零，续播起点落在其中时从头播放

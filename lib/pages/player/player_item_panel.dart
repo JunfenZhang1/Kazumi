@@ -8,6 +8,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/bean/widget/play_pause_icon.dart';
 import 'package:kazumi/pages/player/player_adjustment_hud.dart';
+import 'package:kazumi/pages/player/subtitle_settings_dialog.dart';
 import 'package:kazumi/pages/player/danmaku_destination_sheet.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
@@ -624,12 +625,42 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         onSelected: (value) => playerController.panel.aspectRatioMode = value,
       );
 
-  List<Widget> get _speedItems => _choiceItems(
-        defaultPlaySpeedList,
-        label: (value) => '${value}x',
-        selected: (value) => value == playerController.playback.playerSpeed,
-        onSelected: widget.setPlaybackSpeed,
-      );
+  List<Widget> get _speedItems => [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: SizedBox(
+            width: 280,
+            child: Observer(
+              builder: (context) {
+                final speed = playerController.playback.playerSpeed;
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('当前倍速：${speed.toStringAsFixed(1)}x'),
+                    Slider(
+                      min: minPlayerSpeed,
+                      max: maxPlayerSpeed,
+                      divisions: 159,
+                      value: speed.clamp(minPlayerSpeed, maxPlayerSpeed).toDouble(),
+                      label: '${speed.toStringAsFixed(1)}x',
+                      onChanged: (value) =>
+                          widget.setPlaybackSpeed(normalizePlayerSpeed(value)),
+                    ),
+                    const Text('0.1x – 16x，间隔 0.1x'),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+        ..._choiceItems(
+          defaultPlaySpeedList,
+          label: (value) => '${value}x',
+          selected: (value) => value == playerController.playback.playerSpeed,
+          onSelected: widget.setPlaybackSpeed,
+        ),
+      ];
 
   List<Widget> get _superResolutionItems => _choiceItems(
         SuperResolutionMode.values,
@@ -905,6 +936,10 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         child: const Text('超分辨率')),
                     _syncPlayMenuItem,
                   ],
+                  KazumiMenuItem(
+                    onPressed: () => showSubtitleSettingsDialog(context),
+                    label: '字幕转换 / 翻译',
+                  ),
                   KazumiMenuItem(
                     onPressed: widget.showDanmakuSwitch,
                     label: '弹幕切换',
