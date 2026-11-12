@@ -133,7 +133,7 @@ class _ProcessedSubtitleViewState extends State<ProcessedSubtitleView> {
     _generation++;
     _requestCancel?.cancel('Subtitle widget disposed');
     final subscription = _subscription;
-      if (subscription != null) unawaited(subscription.cancel());
+    if (subscription != null) unawaited(subscription.cancel());
     super.dispose();
   }
 
