@@ -26,5 +26,7 @@ void main() {
         SubtitleProcessingMode.original);
     expect(SubtitleProcessingMode.fromStorage(99),
         SubtitleProcessingMode.original);
+    expect(SubtitleProcessingMode.fromStorage(3),
+        SubtitleProcessingMode.localAi);
   });
 }
